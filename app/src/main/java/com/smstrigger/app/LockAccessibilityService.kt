@@ -4,28 +4,30 @@ import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import java.lang.ref.WeakReference
 
 class LockAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "LockAccessibility"
-        private var instanceRef: WeakReference<LockAccessibilityService>? = null
 
-        fun isRunning(): Boolean {
-            return instanceRef?.get() != null
-        }
+        // Strong reference — not garbage collected unlike WeakReference.
+        // Nulled explicitly in onDestroy() to prevent memory leaks.
+        @Volatile
+        private var instance: LockAccessibilityService? = null
+
+        fun isRunning(): Boolean = instance != null
 
         fun lockScreen(): Boolean {
-            val service = instanceRef?.get()
+            val service = instance
             if (service == null) {
                 Log.w(TAG, "Cannot lock screen: LockAccessibilityService is not active")
                 return false
             }
 
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val success = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
-                Log.i(TAG, "Screen lock action result: $success")
+                val success =
+                    service.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+                Log.i(TAG, "Screen lock action dispatched. Result: $success")
                 success
             } else {
                 Log.w(TAG, "Lock screen via AccessibilityService requires API 28+")
@@ -36,12 +38,12 @@ class LockAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        instanceRef = WeakReference(this)
-        Log.i(TAG, "LockAccessibilityService connected successfully")
+        instance = this
+        Log.i(TAG, "LockAccessibilityService connected and instance registered")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // No event interception needed, service is used solely for global actions
+        // Not needed — this service is used solely for global actions (lock screen)
     }
 
     override fun onInterrupt() {
@@ -50,9 +52,10 @@ class LockAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (instanceRef?.get() == this) {
-            instanceRef = null
+        // Null out explicitly to prevent stale reference after service is killed
+        if (instance == this) {
+            instance = null
+            Log.i(TAG, "LockAccessibilityService destroyed — instance cleared")
         }
-        Log.i(TAG, "LockAccessibilityService destroyed")
     }
 }

@@ -33,35 +33,41 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace
 
-    - name: Upload APK Artifact
+    - name: Extract Version Name
+      id: version
+      run: |
+        VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "APK_NAME=${VERSION}_sms.apk" >> $GITHUB_OUTPUT
+
+    - name: Rename APK to version scheme
+      run: |
+        mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/${{ steps.version.outputs.APK_NAME }}
+
+    - name: Upload APK as Workflow Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SMSCommander-v0.1-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: ${{ steps.version.outputs.APK_NAME }}
+        path: app/build/outputs/apk/debug/${{ steps.version.outputs.APK_NAME }}
         retention-days: 30
 
-    - name: Create GitHub Release
+    - name: Create GitHub Release (on tag push only)
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
-        files: app/build/outputs/apk/debug/app-debug.apk
-        name: SMS Commander Release ${{ github.ref_name }}
+        files: app/build/outputs/apk/debug/${{ steps.version.outputs.APK_NAME }}
+        name: SMS Commander ${{ steps.version.outputs.VERSION }}
         body: |
-          ## SMS Commander v0.1 - Initial Release 🚀
-          
-          ### Features in this Release:
-          - **SMS Ingestion Engine**: Automatically intercepts incoming SMS and parses messages from any sender.
-          - **Screen Off / Lock Trigger**: Immediately turns off and locks the screen upon receiving code `red` (or any custom code).
-          - **Fingerprint-Friendly Lock**: Uses modern Android Accessibility Service (`GLOBAL_ACTION_LOCK_SCREEN`), preserving biometric/fingerprint unlock on Redmi Note 10 Pro.
-          - **Redmi Note 10 Pro / MIUI Optimizations**: Direct 1-tap shortcuts in UI for MIUI Autostart and Battery Saver ("No restrictions") to ensure background reliability.
-          - **Diagnostics & Testing Dashboard**: In-app permission indicators, keyword customizer, live event logs, and instant "Test Screen Off Now" button.
-          
-          ### Installation & Quick Start:
-          1. Download **`app-debug.apk`** below to your Redmi Note 10 Pro.
-          2. Install and launch **SMS Commander**.
-          3. Tap **Grant** for SMS Permission.
-          4. Tap **Enable** for Screen Lock Service (turn on in *Downloaded Apps*).
-          5. Tap **Autostart** and toggle ON; set **Battery Saver** to *No restrictions*.
-          6. Send a text with `red` to your phone from any device!
+          ## SMS Commander ${{ steps.version.outputs.VERSION }} — ${{ github.ref_name }}
+
+          ### What Changed in This Release:
+          ${{ github.event.head_commit.message }}
+
+          ### Installation Steps (Redmi Note 10 Pro):
+          1. Download **`${{ steps.version.outputs.APK_NAME }}`** below.
+          2. Install APK on your phone (allow "Install from unknown sources" if prompted).
+          3. Open **SMS Commander** and complete the 3 setup steps shown in the app.
+
+          ### All Releases: https://github.com/${{ github.repository }}/releases
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

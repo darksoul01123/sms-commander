@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 startActivity(intent)
                 return
-            } catch (_: Exception) {
+            } catch (e: Exception) {
             }
         }
     }
@@ -245,7 +245,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     startActivity(intent)
                     return
-                } catch (_: Exception) {
+                } catch (e: Exception) {
                 }
             }
         }

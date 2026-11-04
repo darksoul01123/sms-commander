@@ -24,7 +24,7 @@ class LockAccessibilityService : AccessibilityService() {
             }
 
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val success = service.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+                val success = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
                 Log.i(TAG, "Screen lock action result: $success")
                 success
             } else {

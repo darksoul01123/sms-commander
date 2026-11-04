@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SMS Commander</string>
+    <string name="accessibility_service_name">SMS Commander Screen Lock</string>
+    <string name="accessibility_service_desc">Required to turn off and lock the screen when the configured SMS trigger code is received.</string>
+</resources>
